@@ -1,44 +1,20 @@
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/asio.hpp>
+#ifndef TCP_SERVER_H
+#define TCP_SERVER_H
 
-using boost::asio::ip::tcp;
+#include <vector>
+#include "kissnet.hpp"
 
-#include "tcp_connection.h"
+class Connection; // forward declaration
 
-class tcp_server
-{
+class Server {
 public:
-    tcp_server(boost::asio::io_context& io_context)
-        : io_context_(io_context),
-        acceptor_(io_context, tcp::endpoint(tcp::v4(), 11000))
-    {
-        start_accept();
-    }
+    void start();
+    void poll();
 
-private:
-    void start_accept()
-    {
-        tcp_connection::pointer new_connection =
-            tcp_connection::create(io_context_);
-
-        acceptor_.async_accept(new_connection->socket(),
-            boost::bind(&tcp_server::handle_accept, this, new_connection,
-                boost::asio::placeholders::error));
-    }
-
-    void handle_accept(tcp_connection::pointer new_connection,
-        const boost::system::error_code& error)
-    {
-        if (!error)
-        {
-            new_connection->start();
-        }
-
-        start_accept();
-    }
-
-    boost::asio::io_context& io_context_;
-    tcp::acceptor acceptor_;
+protected:
+    kissnet::port_t port = 11000;
+    kissnet::tcp_socket listen_socket; // invalid socket until reassigned later
+    std::vector<Connection*> connections;
 };
+
+#endif // TCP_SERVER_H

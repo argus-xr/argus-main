@@ -1,0 +1,6 @@
+[submodule "lib/kissnet"]
+	path = lib/kissnet
+	url = https://github.com/Ybalrid/kissnet.git
+[submodule "lib/argus-utils"]
+	path = lib/argus-utils
+	url = https://github.com/argus-xr/argus-utils.git

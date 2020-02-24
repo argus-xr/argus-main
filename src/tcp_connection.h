@@ -1,54 +1,35 @@
-#include <iostream>
-#include <string>
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/asio.hpp>
+#ifndef TCP_CONNECTION_H
+#define TCP_CONNECTION_H
 
-using boost::asio::ip::tcp;
+#include "kissnet.hpp"
+#include "tcp_server.h"
+//#include "ByteBuffer.hpp"
+#include "netbuffer.h"
+#include "BasicMessageProtocol/BasicMessageProtocol.h"
 
+class Server; // forward declaration
 
-class tcp_connection
-    : public boost::enable_shared_from_this<tcp_connection>
-{
+class Connection {
 public:
-    typedef boost::shared_ptr<tcp_connection> pointer;
+	Connection(kissnet::tcp_socket&& socket, Server* owningServer) {
+		_socket = std::move(socket);
+		owner = owningServer;
+	}
 
-    static pointer create(boost::asio::io_context& io_context)
-    {
-        return pointer(new tcp_connection(io_context));
-    }
+	bool poll();
+protected:
+	kissnet::tcp_socket _socket;
+	std::byte recvbuffer[1500];
+	Server* owner = nullptr;
+	//bb::ByteBuffer* buf = new bb::ByteBuffer();
+	BasicMessageBuffer* buf = new BasicMessageBuffer();
 
-    tcp::socket& socket()
-    {
-        return socket_;
-    }
+	const uint8_t* delimeterSequence = new uint8_t[2]{'\\', '\0'};
+	const uint32_t delimterLength = 2;
 
-    void start() {
-        send("Hello!");
-    }
 
-    void send(std::string buf)
-    {
-        message_ = buf;
-
-        boost::asio::async_write(socket_, boost::asio::buffer(message_),
-            boost::bind(&tcp_connection::handle_write, shared_from_this(),
-                boost::asio::placeholders::error,
-                boost::asio::placeholders::bytes_transferred));
-    }
-
-private:
-    tcp_connection(boost::asio::io_context& io_context)
-        : socket_(io_context)
-    {
-    }
-
-    void handle_write(const boost::system::error_code& /*error*/,
-        size_t /*bytes_transferred*/)
-    {
-    }
-
-    tcp::socket socket_;
-    std::string message_;
+	void checkMessages();
+	void processMessage(NetMessageIn* msg);
 };
+
+#endif // TCP_CONNECTION_H
