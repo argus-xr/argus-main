@@ -4,6 +4,21 @@ namespace kn = kissnet;
 #include "tcp_server.h"
 #include <iostream>
 
+Connection::Connection(kissnet::tcp_socket&& socket, Server* owningServer)
+{
+	_socket = std::move(socket);
+	owner = owningServer;
+
+	NetMessageOut* msg = new NetMessageOut(5);
+	msg->writeuint8(0);
+	msg->writeVarString("Test");
+	uint8_t* msgBuf;
+	uint32_t length = buf->messageOutToByteArray(msgBuf, msg);
+	sendMessageRaw((std::byte*) msgBuf, length);
+	delete[] msgBuf;
+	delete msg;
+}
+
 bool Connection::poll() {
 	bool continue_receiving = true;
 
@@ -33,49 +48,19 @@ void Connection::checkMessages() {
 			processMessage(msg);
 		}
 	}
-	/*bool chop = false;
-	do {
-		chop = false;
-		uint32_t chopSpot = 0;
-		if (buf->getLength() <= 0) {
-			return; // nothing to check.
-		}
-		//int32_t pos = buf->findByteSequence(delimeterSequence, delimeterSequence, 0);
-		if (buf->getByteAt(0) == '|') {
-			uint32_t len = buf->getInt();
-			if (buf->size() > len) {
-				std::uint8_t* msgBuf = new std::uint8_t[len - 4];
-				buf->getBytes(msgBuf, len - 4);
-				bb::ByteBuffer* msgBufBB = new bb::ByteBuffer(msgBuf, len - 4);
-				processMessage(msgBufBB);
-				chop = true;
-				chopSpot = len + 5; // '|' and 4 bytes for length
-			}
-		}
-		else {
-			chopSpot = buf->find('|');
-			if (chopSpot > 0) {
-				chop = true;
-			}
-		}
-		if (chop) { // remove a message and put the remainder in a new buffer.
-			uint32_t length = buf->size() - chopSpot;
-			std::uint8_t* tmpbuf = new std::uint8_t[length];
-			buf->getBytes(tmpbuf, length);
-			bb::ByteBuffer* tmp = buf;
-			buf = new bb::ByteBuffer(tmpbuf, length);
-			delete tmp;
-		}
-	} while (chop == true); // re-check until there's nothing to process.*/
 }
 
 void Connection::processMessage(NetMessageIn* msg) {
 	uint8_t type = msg->readuint8();
 	switch (type) {
 	case 0:
-		std::string s = msg->readFixedString(5);
+		std::string s = msg->readVarString();
 		std::cout << s << "\n";
 		break;
 	}
 	delete msg;
+}
+
+void Connection::sendMessageRaw(const std::byte* buffer, size_t length) {
+	_socket.send(buffer, length);
 }
