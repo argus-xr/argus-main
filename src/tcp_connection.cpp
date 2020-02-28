@@ -11,7 +11,7 @@ Connection::Connection(kissnet::tcp_socket&& socket, Server* owningServer)
 
 	NetMessageOut* msg = new NetMessageOut(5);
 	msg->writeuint8(0);
-	msg->writeVarString("Test");
+	msg->writeVarString("Test\\Moretesting");
 	uint8_t* msgBuf;
 	uint32_t length = buf->messageOutToByteArray(msgBuf, msg);
 	sendMessageRaw((std::byte*) msgBuf, length);
