@@ -3,6 +3,8 @@ namespace kn = kissnet;
 
 #include "tcp_server.h"
 #include <iostream>
+#include "Events.h"
+#include "ControllerEvents.h"
 
 Connection::Connection(kissnet::tcp_socket&& socket, Server* owningServer)
 {
@@ -54,11 +56,24 @@ void Connection::processMessage(NetMessageIn* msg) {
 	uint8_t type = msg->readuint8();
 	switch (type) {
 	case 0:
+	{
 		std::string s = msg->readVarString();
 		std::cout << s << "\n";
 		break;
 	}
+	case 1:
+		processImageDataMessage(msg);
+	}
 	delete msg;
+}
+
+void Connection::processImageDataMessage(NetMessageIn* msg) {
+	uint64_t bufLen = msg->readVarInt();
+	uint8_t* buf = msg->readByteBlob((uint32_t)bufLen);
+	VideoFrame* frame = new VideoFrame(buf, bufLen, VideoFrame::VideoFrameEncoding::VFE_JPEG);
+	NewVideoFrameEvent ev;
+	ev.pointer = std::shared_ptr<VideoFrame>(frame);
+	Events::eBus.notify(ev);
 }
 
 void Connection::sendMessageRaw(const std::byte* buffer, size_t length) {

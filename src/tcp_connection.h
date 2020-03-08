@@ -23,6 +23,7 @@ protected:
 	void checkMessages();
 	void processMessage(NetMessageIn* msg);
 	void sendMessageRaw(const std::byte* buffer, size_t length);
+	void processImageDataMessage(NetMessageIn* msg);
 };
 
 #endif // TCP_CONNECTION_H

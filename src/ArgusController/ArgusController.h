@@ -1,0 +1,13 @@
+#ifndef ARGUSCONTROLLER_H
+#define ARGUSCONTROLLER_H
+
+#include "VideoFrame.h"
+
+class ArgusController {
+protected:
+	bool active = false; // is this controller currently connected and moving?
+	// include current position, orientation, and linear/angular velocity
+	VideoFrame* lastFrame = NULL;
+};
+
+#endif // ARGUSCONTROLLER_H
