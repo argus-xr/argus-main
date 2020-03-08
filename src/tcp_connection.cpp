@@ -5,20 +5,25 @@ namespace kn = kissnet;
 #include <iostream>
 #include "Events.h"
 #include "ControllerEvents.h"
+#include "SDLUI.h"
+
+#ifdef SDL_FOUND
+#include "SDLUI.h"
+#endif
 
 Connection::Connection(kissnet::tcp_socket&& socket, Server* owningServer)
 {
 	_socket = std::move(socket);
 	owner = owningServer;
 
-	NetMessageOut* msg = new NetMessageOut(5);
+	/*NetMessageOut* msg = new NetMessageOut(5);
 	msg->writeuint8(0);
 	msg->writeVarString("Test\\Moretesting");
 	uint8_t* msgBuf;
 	uint32_t length = buf->messageOutToByteArray(msgBuf, msg);
 	sendMessageRaw((std::byte*) msgBuf, length);
 	delete[] msgBuf;
-	delete msg;
+	delete msg;*/
 }
 
 bool Connection::poll() {
@@ -53,7 +58,7 @@ void Connection::checkMessages() {
 }
 
 void Connection::processMessage(NetMessageIn* msg) {
-	uint8_t type = msg->readuint8();
+	uint64_t type = msg->readVarInt();
 	switch (type) {
 	case 0:
 	{
@@ -63,6 +68,7 @@ void Connection::processMessage(NetMessageIn* msg) {
 	}
 	case 1:
 		processImageDataMessage(msg);
+		break;
 	}
 	delete msg;
 }
@@ -71,9 +77,9 @@ void Connection::processImageDataMessage(NetMessageIn* msg) {
 	uint64_t bufLen = msg->readVarInt();
 	uint8_t* buf = msg->readByteBlob((uint32_t)bufLen);
 	VideoFrame* frame = new VideoFrame(buf, bufLen, VideoFrame::VideoFrameEncoding::VFE_JPEG);
-	NewVideoFrameEvent ev;
-	ev.pointer = std::shared_ptr<VideoFrame>(frame);
-	Events::eBus.notify(ev);
+#ifdef SDL_FOUND
+	ArgusVizUI::inst()->setNewFrame(std::shared_ptr<VideoFrame>(frame));
+#endif
 }
 
 void Connection::sendMessageRaw(const std::byte* buffer, size_t length) {
