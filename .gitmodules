@@ -4,6 +4,3 @@
 [submodule "lib/argus-utils"]
 	path = lib/argus-utils
 	url = https://github.com/argus-xr/argus-utils.git
-[submodule "lib/EventBus"]
-	path = lib/EventBus
-	url = https://github.com/mmcshane/eventbus.git
