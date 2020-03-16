@@ -63,8 +63,7 @@ void ArgusVizUI::setNewFrame(std::shared_ptr<VideoFrame> frame) {
 #ifdef SDL2_IMAGE_FOUND
 	else {
 		frameSurface = IMG_LoadJPG_RW(ops);
-		//frameSurface = IMG_Load_RW(ops, 1);
-		//frameSurface = IMG_Load("D:\Argus\Server\argus-main-build\Debug\BLAH.jpg");
+		//frameSurface = IMG_Load("D:/Argus/Server/argus-main-build/Debug/BLAH.jpg");
 		SDL_RWclose(ops);
 	}
 #endif

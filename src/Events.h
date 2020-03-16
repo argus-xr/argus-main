@@ -1,11 +1,9 @@
 #ifndef EVENTS_H
 #define EVENTS_H
 
-class Events {
+class BaseTaskMessage {
 public:
-private:
-	static Events instance;
-	Events();
+	virtual void executeOnThisThread() = 0;
 };
 
 #endif // EVENTS_H

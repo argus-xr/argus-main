@@ -1,0 +1,2 @@
+target_sources(argus-main PRIVATE ArgusController.cpp ArgusController.h ArgusDevice.cpp ArgusDevice.h ArgusDeviceManager.cpp ArgusDeviceManager.h VideoFrame.cpp VideoFrame.h ControllerEvents.h)
+target_include_directories(argus-main PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
