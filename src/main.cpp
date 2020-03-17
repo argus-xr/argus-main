@@ -1,6 +1,6 @@
 #include <ctime>
 #include <string>
-#include "tcp_server.h"
+#include "ServerTCP.h"
 
 #ifdef SDL_FOUND
 #include "SDLUI.h"
@@ -8,14 +8,14 @@
 #undef main // SDL.h has #define main SDL_main which causes issues.
 #endif // SDL_FOUND
 
-Server* server;
+ServerTCP* server;
 
 int main(int argc, char* argv[]) {
 #ifdef SDL_FOUND
     ArgusVizUI* ui = new ArgusVizUI();
     ui->start();
 #endif
-    server = new Server();
+    server = new ServerTCP();
     server->start();
     while (true) {
         server->poll();

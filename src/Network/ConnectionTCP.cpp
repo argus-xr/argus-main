@@ -1,7 +1,7 @@
-#include "tcp_connection.h"
+#include "ConnectionTCP.h"
 namespace kn = kissnet;
 
-#include "tcp_server.h"
+#include "ServerTCP.h"
 #include <iostream>
 #include "Events.h"
 #include "ControllerEvents.h"
@@ -11,7 +11,7 @@ namespace kn = kissnet;
 #include "SDLUI.h"
 #endif
 
-Connection::Connection(kissnet::tcp_socket&& socket, Server* owningServer)
+ConnectionTCP::ConnectionTCP(kissnet::tcp_socket&& socket, ServerTCP* owningServer)
 {
 	_socket = std::move(socket);
 	owner = owningServer;
@@ -26,7 +26,7 @@ Connection::Connection(kissnet::tcp_socket&& socket, Server* owningServer)
 	delete msg;*/
 }
 
-bool Connection::poll() {
+bool ConnectionTCP::poll() {
 	bool continue_receiving = true;
 
 	do {
@@ -42,7 +42,7 @@ bool Connection::poll() {
 	return true;
 }
 
-void Connection::checkMessages() {
+void ConnectionTCP::checkMessages() {
 	buf->checkMessages();
 	NetMessageIn* msg;
 
@@ -57,7 +57,7 @@ void Connection::checkMessages() {
 	}
 }
 
-void Connection::processMessage(NetMessageIn* msg) {
+void ConnectionTCP::processMessage(NetMessageIn* msg) {
 	uint64_t type = msg->readVarInt();
 	switch (type) {
 	case 0:
@@ -73,15 +73,16 @@ void Connection::processMessage(NetMessageIn* msg) {
 	delete msg;
 }
 
-void Connection::processImageDataMessage(NetMessageIn* msg) {
+void ConnectionTCP::processImageDataMessage(NetMessageIn* msg) {
 	uint64_t bufLen = msg->readVarInt();
 	uint8_t* buf = msg->readByteBlob((uint32_t)bufLen);
 	VideoFrame* frame = new VideoFrame(buf, bufLen, VideoFrame::VideoFrameEncoding::VFE_JPEG);
 #ifdef SDL_FOUND
 	ArgusVizUI::inst()->setNewFrame(std::shared_ptr<VideoFrame>(frame));
+	std::cout << "New videoframe received.\n";
 #endif
 }
 
-void Connection::sendMessageRaw(const std::byte* buffer, size_t length) {
+void ConnectionTCP::sendMessageRaw(const std::byte* buffer, size_t length) {
 	_socket.send(buffer, length);
 }

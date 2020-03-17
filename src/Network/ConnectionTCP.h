@@ -1,22 +1,22 @@
-#ifndef TCP_CONNECTION_H
-#define TCP_CONNECTION_H
+#ifndef CONNECTIONTCP_H
+#define CONNECTIONTCP_H
 
 #include "kissnet.hpp"
-#include "tcp_server.h"
+#include "ServerTCP.h"
 #include "argus-netbuffer/netbuffer.h"
 #include "argus-netbuffer/BasicMessageProtocol/BasicMessageProtocol.h"
 
-class Server; // forward declaration
+class ServerTCP; // forward declaration
 
-class Connection {
+class ConnectionTCP {
 public:
-	Connection(kissnet::tcp_socket&& socket, Server* owningServer);
+	ConnectionTCP(kissnet::tcp_socket&& socket, ServerTCP* owningServer);
 
 	bool poll();
 protected:
 	kissnet::tcp_socket _socket;
 	std::byte recvbuffer[1500];
-	Server* owner = nullptr;
+	ServerTCP* owner = nullptr;
 	BasicMessageBuffer* buf = new BasicMessageBuffer();
 
 
@@ -26,4 +26,4 @@ protected:
 	void processImageDataMessage(NetMessageIn* msg);
 };
 
-#endif // TCP_CONNECTION_H
+#endif // CONNECTIONTCP_H

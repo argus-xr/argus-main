@@ -1,5 +1,6 @@
-target_sources(argus-main PRIVATE main.cpp tcp_server.h tcp_server.cpp tcp_connection.h tcp_connection.cpp events.cpp events.h)
+target_sources(argus-main PRIVATE main.cpp events.cpp events.h)
 target_include_directories(argus-main PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 add_subdirectory(ArgusClient)
 add_subdirectory(ArgusController)
 add_subdirectory(ArgusViewer)
+add_subdirectory(Network)
