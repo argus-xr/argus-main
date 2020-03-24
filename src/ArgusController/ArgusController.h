@@ -1,6 +1,8 @@
 #ifndef ARGUSCONTROLLER_H
 #define ARGUSCONTROLLER_H
 
+#include <cstddef>
+
 #include "VideoFrame.h"
 
 class ArgusController {

@@ -1,6 +1,7 @@
 #ifndef VIDEOFRAME_H
 #define VIDEOFRAME_H
 
+#include <cstddef>
 #include <cstdint>
 
 class VideoFrame {
