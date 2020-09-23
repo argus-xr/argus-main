@@ -5,7 +5,6 @@ namespace kn = kissnet;
 #include <iostream>
 #include "Events.h"
 #include "ControllerEvents.h"
-#include "SDLUI.h"
 
 #ifdef SDL_FOUND
 #include "SDLUI.h"

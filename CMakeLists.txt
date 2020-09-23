@@ -8,6 +8,6 @@ set(DEPS_FOLDER_DEBUG ${CMAKE_SOURCE_DIR}/compiledlibs/debug)
 
 add_subdirectory(lib)
 
-add_subdirectory(SDLVisualization)
+add_subdirectory(${CMAKE_SOURCE_DIR}/SDLVisualization)
 
 add_subdirectory(src)
