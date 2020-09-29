@@ -5,6 +5,7 @@ namespace kn = kissnet;
 #include <iostream>
 #include "Events.h"
 #include "ControllerEvents.h"
+#include "RandomWrapper.h"
 
 #ifdef SDL_FOUND
 #include "SDLUI.h"
@@ -12,17 +13,11 @@ namespace kn = kissnet;
 
 ConnectionTCP::ConnectionTCP(kissnet::tcp_socket&& socket, ServerTCP* owningServer)
 {
+	srand((unsigned)time(0));
 	_socket = std::move(socket);
 	owner = owningServer;
 
-	/*NetMessageOut* msg = new NetMessageOut(5);
-	msg->writeuint8(0);
-	msg->writeVarString("Test\\Moretesting");
-	uint8_t* msgBuf;
-	uint32_t length = buf->messageOutToByteArray(msgBuf, msg);
-	sendMessageRaw((std::byte*) msgBuf, length);
-	delete[] msgBuf;
-	delete msg;*/
+	sendHandshakeMessage();
 }
 
 bool ConnectionTCP::poll() {
@@ -57,31 +52,88 @@ void ConnectionTCP::checkMessages() {
 }
 
 void ConnectionTCP::processMessage(NetMessageIn* msg) {
-	uint64_t type = msg->readVarInt();
+	CTSMessageType type = (CTSMessageType) msg->readVarInt();
 	switch (type) {
-	case 0:
-	{
-		std::string s = msg->readVarString();
-		std::cout << s << "\n";
+	case CTSMessageType::Handshake:
+		processHandshakeMessage(msg);
 		break;
-	}
-	case 1:
+	case CTSMessageType::GUIDResponse:
+		processGUIDResponseMessage(msg);
+		break;
+	case CTSMessageType::VideoData:
 		processImageDataMessage(msg);
+		break;
+	case CTSMessageType::IMUData:
+		processIMUDataMessage(msg);
+		break;
+	case CTSMessageType::Debug:
+		processDebugMessage(msg);
+		break;
+	default:
 		break;
 	}
 	delete msg;
 }
 
+void ConnectionTCP::sendHandshakeMessage() {
+	NetMessageOut* msg = new NetMessageOut(0);
+	msg->writeVarInt((uint64_t)STCMessageType::Handshake);
+	std::string contents = msg->debugBuffer();
+	printf("Sending handshake, contents: %s.\n", contents.c_str());
+	sendMessage(msg);
+}
+
+void ConnectionTCP::processHandshakeMessage(NetMessageIn* msg) {
+	uint64_t guid = msg->readVarInt(); // no uint64_t support yet
+	std::string contents = msg->debugBuffer();
+	printf("Processing handshake - GUID: %llu, contents: %s.\n", guid, contents.c_str());
+	// if guid = 0, create random guid. If guid does not match a known controller, add a new controller entry. Assign controller config to connection.
+	if (guid == 0) {
+		sendSetGUIDMessage(RandomWrapper::getRandomUInt64());
+	}
+}
+
+void ConnectionTCP::sendSetGUIDMessage(uint64_t newGUID) {
+	NetMessageOut* msg = new NetMessageOut(0);
+	msg->writeVarInt((uint64_t)STCMessageType::SetGUID);
+	msg->writeVarInt(newGUID);
+	std::string contents = msg->debugBuffer();
+	printf("Sending SetGUID - GUID: %llu, contents: %s.\n", newGUID, contents.c_str());
+	sendMessage(msg);
+}
+
+void ConnectionTCP::processGUIDResponseMessage(NetMessageIn* msg) {
+	// guid has been accepted, presumably, so continue.
+	printf("New GUID accepted.\n");
+}
+
 void ConnectionTCP::processImageDataMessage(NetMessageIn* msg) {
 	uint64_t bufLen = msg->readVarInt();
 	uint8_t* buf = msg->readByteBlob((uint32_t)bufLen);
-	VideoFrame* frame = new VideoFrame(buf, bufLen, VideoFrame::VideoFrameEncoding::VFE_JPEG);
 #ifdef SDL_FOUND
+	VideoFrame* frame = new VideoFrame(buf, bufLen, VideoFrame::VideoFrameEncoding::VFE_JPEG);
 	ArgusVizUI::inst()->setNewFrame(std::shared_ptr<VideoFrame>(frame));
-	std::cout << "New videoframe received.\n";
+	printf("New videoframe received.\n");
 #endif
+}
+
+void ConnectionTCP::processIMUDataMessage(NetMessageIn* msg) {
+
+}
+
+void ConnectionTCP::processDebugMessage(NetMessageIn* msg) {
+	std::string s = msg->readVarString();
+	std::cout << s << "\n";
 }
 
 void ConnectionTCP::sendMessageRaw(const std::byte* buffer, size_t length) {
 	_socket.send(buffer, length);
+}
+
+void ConnectionTCP::sendMessage(NetMessageOut* msg) {
+	uint8_t* msgBuf;
+	uint32_t length = buf->messageOutToByteArray(msgBuf, msg);
+	sendMessageRaw((std::byte*) msgBuf, length);
+	delete[] msgBuf;
+	delete msg;
 }

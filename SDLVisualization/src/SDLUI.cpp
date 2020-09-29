@@ -14,7 +14,7 @@ void ArgusVizUI::start() {
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 		return;
 	}
-	window = SDL_CreateWindow("Argus Server", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 500, 500, SDL_WINDOW_SHOWN);
+	window = SDL_CreateWindow("Argus Server", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_SHOWN);
 	if (window == NULL) {
 		printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
 		return;
