@@ -131,9 +131,8 @@ void ConnectionTCP::sendMessageRaw(const std::byte* buffer, size_t length) {
 }
 
 void ConnectionTCP::sendMessage(NetMessageOut* msg) {
-	uint8_t* msgBuf;
-	uint32_t length = buf->messageOutToByteArray(msgBuf, msg);
-	sendMessageRaw((std::byte*) msgBuf, length);
-	delete[] msgBuf;
+	OutPacket* pac = buf->messageToOutPacket(msg);
+	sendMessageRaw((std::byte*) pac->getData(), pac->getDataLength());
+	delete pac;
 	delete msg;
 }
