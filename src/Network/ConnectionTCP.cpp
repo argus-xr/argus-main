@@ -108,12 +108,14 @@ void ConnectionTCP::processGUIDResponseMessage(NetMessageIn* msg) {
 }
 
 void ConnectionTCP::processImageDataMessage(NetMessageIn* msg) {
+	uint64_t timestamp = msg->readVarInt();
 	uint64_t bufLen = msg->readVarInt();
 	uint8_t* buf = msg->readByteBlob((uint32_t)bufLen);
 #ifdef SDL_FOUND
 	VideoFrame* frame = new VideoFrame(buf, bufLen, VideoFrame::VideoFrameEncoding::VFE_JPEG);
 	ArgusVizUI::inst()->setNewFrame(std::shared_ptr<VideoFrame>(frame));
-	printf("New videoframe received.\n");
+	//printf("New videoframe received.\n");
+	printf("New videoframe received. Timestamp: %llu.\n", timestamp);
 #endif
 }
 
