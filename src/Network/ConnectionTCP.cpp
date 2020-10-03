@@ -120,7 +120,17 @@ void ConnectionTCP::processImageDataMessage(NetMessageIn* msg) {
 }
 
 void ConnectionTCP::processIMUDataMessage(NetMessageIn* msg) {
-
+	uint64_t num = msg->readVarInt();
+	for (int i = 0; i < num; ++i) {
+		int16_t aX = (int16_t)msg->readVarIntSigned();
+		int16_t aY = (int16_t)msg->readVarIntSigned();
+		int16_t aZ = (int16_t)msg->readVarIntSigned();
+		int16_t gX = (int16_t)msg->readVarIntSigned();
+		int16_t gY = (int16_t)msg->readVarIntSigned();
+		int16_t gZ = (int16_t)msg->readVarIntSigned();
+		uint64_t timestamp_us = msg->readVarInt(); // timestamp in microseconds.
+		printf("IMU: %6d %6d %6d - %6d %6d %6d, timestamp %llu.\n", aX, aY, aZ, gX, gY, gZ, timestamp_us);
+	}
 }
 
 void ConnectionTCP::processDebugMessage(NetMessageIn* msg) {
