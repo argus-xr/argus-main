@@ -10,6 +10,8 @@
 
 #include "ArgusConfig.h"
 
+#include "KalmanFilter.hpp"
+
 ServerTCP* server;
 
 int main(int argc, char* argv[]) {
@@ -20,6 +22,10 @@ int main(int argc, char* argv[]) {
 #endif
     server = new ServerTCP();
     server->start();
+
+    KalmanFilter *kf = new KalmanFilter();
+    kf->test();
+
     while (true) {
         server->poll();
 #ifdef SDL_FOUND
