@@ -81,6 +81,7 @@ public:
             // Add noise: Our robot move is affected by noise (due to actuator failures)
             x.x() += systemNoise * noise(generator);
             x.y() += systemNoise * noise(generator);
+            x.z() += systemNoise * noise(generator);
             x.theta() += systemNoise * noise(generator);
 
             // Predict state for current time-step using the filters
@@ -113,7 +114,8 @@ public:
 
             if (i % 10 == 0) {
                 // Print to stdout as csv format
-                printf("Kalman test: %6.2f, %6.2f, %6.2f, %6.2f, %6.2f, %6.2f\n", x.x(), x.y(), x.theta(), x_ukf.x(), x_ukf.y(), x_ukf.theta());
+                printf("Kalman test: %6.2f, %6.2f, %6.2f, %6.2f\n", x.px(), x.py(), x.pz(), x.theta());
+                printf("Estimate:    %6.2f, %6.2f, %6.2f, %6.2f\n", x_ukf.px(), x_ukf.py(), x_ukf.pz(), x_ukf.theta());
             }
         }
     }

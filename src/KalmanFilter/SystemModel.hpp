@@ -17,24 +17,28 @@ namespace Robot1
  * @param T Numeric scalar type
  */
 template<typename T>
-class State : public Kalman::Vector<T, 3>
+class State : public Kalman::Vector<T, 4>
 {
 public:
-    KALMAN_VECTOR(State, T, 3)
+    KALMAN_VECTOR(State, T, 4)
     
     //! X-position
-    static constexpr size_t X = 0;
+    static constexpr size_t pX = 0;
     //! Y-Position
-    static constexpr size_t Y = 1;
+    static constexpr size_t pY = 1;
+    //! Z-Position
+    static constexpr size_t pZ = 2;
     //! Orientation
-    static constexpr size_t THETA = 2;
-    
-    T x()       const { return (*this)[ X ]; }
-    T y()       const { return (*this)[ Y ]; }
+    static constexpr size_t THETA = 3;
+
+    T px()       const { return (*this)[pX]; }
+    T py()       const { return (*this)[pY]; }
+    T pz()       const { return (*this)[pZ]; }
     T theta()   const { return (*this)[ THETA ]; }
-    
-    T& x()      { return (*this)[ X ]; }
-    T& y()      { return (*this)[ Y ]; }
+
+    T& px() { return (*this)[pX]; }
+    T& py() { return (*this)[pY]; }
+    T& pz() { return (*this)[pZ]; }
     T& theta()  { return (*this)[ THETA ]; }
 };
 
@@ -77,7 +81,7 @@ public:
  *                       coveriace square root (SquareRootBase))
  */
 template<typename T, template<class> class CovarianceBase = Kalman::StandardBase>
-class SystemModel : public Kalman::LinearizedSystemModel<State<T>, Control<T>, CovarianceBase>
+class SystemModel : public Kalman::SystemModel<State<T>, Control<T>, CovarianceBase>
 {
 public:
     //! State type shortcut definition
@@ -112,52 +116,12 @@ public:
         // New x-position given by old x-position plus change in x-direction
         // Change in x-direction is given by the cosine of the (new) orientation
         // times the velocity
-        x_.x() = x.x() + std::cos( newOrientation ) * u.v();
-        x_.y() = x.y() + std::sin( newOrientation ) * u.v();
+        x_.px() = x.px() + std::cos( newOrientation ) * u.v();
+        x_.py() = x.py() + std::sin( newOrientation ) * u.v();
+        x_.pz() = x.pz();
         
         // Return transitioned state vector
         return x_;
-    }
-    
-protected:
-    /**
-     * @brief Update jacobian matrices for the system state transition function using current state
-     *
-     * This will re-compute the (state-dependent) elements of the jacobian matrices
-     * to linearize the non-linear state transition function \f$f(x,u)\f$ around the
-     * current state \f$x\f$.
-     *
-     * @note This is only needed when implementing a LinearizedSystemModel,
-     *       for usage with an ExtendedKalmanFilter or SquareRootExtendedKalmanFilter.
-     *       When using a fully non-linear filter such as the UnscentedKalmanFilter
-     *       or its square-root form then this is not needed.
-     *
-     * @param x The current system state around which to linearize
-     * @param u The current system control input
-     */
-    void updateJacobians( const S& x, const C& u )
-    {
-        // F = df/dx (Jacobian of state transition w.r.t. the state)
-        this->F.setZero();
-        
-        // partial derivative of x.x() w.r.t. x.x()
-        this->F( S::X, S::X ) = 1;
-        // partial derivative of x.x() w.r.t. x.theta()
-        this->F( S::X, S::THETA ) = -std::sin( x.theta() + u.dtheta() ) * u.v();
-        
-        // partial derivative of x.y() w.r.t. x.y()
-        this->F( S::Y, S::Y ) = 1;
-        // partial derivative of x.y() w.r.t. x.theta()
-        this->F( S::Y, S::THETA ) = std::cos( x.theta() + u.dtheta() ) * u.v();
-        
-        // partial derivative of x.theta() w.r.t. x.theta()
-        this->F( S::THETA, S::THETA ) = 1;
-        
-        // W = df/dw (Jacobian of state transition w.r.t. the noise)
-        this->W.setIdentity();
-        // TODO: more sophisticated noise modelling
-        //       i.e. The noise affects the the direction in which we move as 
-        //       well as the velocity (i.e. the distance we move)
     }
 };
 
