@@ -5,6 +5,7 @@
 #include "ServerTCP.h"
 #include "argus-netbuffer/netbuffer.h"
 #include "argus-netbuffer/BasicMessageProtocol/BasicMessageProtocol.h"
+#include "ArgusController.h"
 
 class ServerTCP; // forward declaration
 
@@ -34,6 +35,7 @@ protected:
 	ServerTCP* owner = nullptr;
 	BasicMessageBuffer* buf = new BasicMessageBuffer();
 
+	std::shared_ptr<ArgusController> controller;
 
 	void checkMessages();
 	void processMessage(NetMessageIn* msg);

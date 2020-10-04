@@ -26,6 +26,24 @@ void ArgusConfig::saveConfig() {
 	doc.save_file(configLocation.c_str());
 }
 
+ArgusConfig* ArgusConfig::getInst() {
+	return inst;
+}
+
+std::shared_ptr<ControllerConfig> ArgusConfig::getControllerConfig(uint64_t guid) {
+	auto it = inst->controllerConfigs.find(guid);
+	if (it != inst->controllerConfigs.end()) {
+		return it->second;
+	}
+	else {
+		return std::shared_ptr<ControllerConfig>(); // basically null
+	}
+}
+
+void ArgusConfig::setControllerConfig(std::shared_ptr<ControllerConfig> cntcfg) {
+	inst->controllerConfigs[cntcfg->guid] = cntcfg;
+}
+
 ArgusConfig::ArgusConfig() {
 	knownDevicesNode = doc.append_child("KnownDevices");
 	saveConfig();
@@ -40,7 +58,7 @@ ArgusConfig::ArgusConfig(std::string file) {
 		knownDevicesNode = doc.append_child("KnownDevices");
 		{
 			ControllerConfig* testConfig = new ControllerConfig();
-			controllerConfigs.push_back(std::shared_ptr<ControllerConfig>(testConfig));
+			controllerConfigs[testConfig->guid] = std::shared_ptr<ControllerConfig>(testConfig);
 			pugi::xml_node dev = knownDevicesNode.append_child("device");
 			testConfig->saveConfig(dev);
 		}
@@ -48,7 +66,8 @@ ArgusConfig::ArgusConfig(std::string file) {
 	}
 	else {
 		for (pugi::xml_node dev : knownDevicesNode.children()) {
-			controllerConfigs.push_back(std::shared_ptr<ControllerConfig>(new ControllerConfig(dev)));
+			auto devc = std::shared_ptr<ControllerConfig>(new ControllerConfig(dev));
+			controllerConfigs[devc->guid] = devc;
 		}
 	}
 	if (changed) {

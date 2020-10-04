@@ -6,6 +6,8 @@ namespace kn = kissnet;
 #include "Events.h"
 #include "ControllerEvents.h"
 #include "RandomWrapper.h"
+#include "ArgusControllerManager.h"
+#include "ArgusConfig.h"
 
 #ifdef SDL_FOUND
 #include "SDLUI.h"
@@ -89,7 +91,21 @@ void ConnectionTCP::processHandshakeMessage(NetMessageIn* msg) {
 	printf("Processing handshake - GUID: %llu, contents: %s.\n", guid, contents.c_str());
 	// if guid = 0, create random guid. If guid does not match a known controller, add a new controller entry. Assign controller config to connection.
 	if (guid == 0) {
-		sendSetGUIDMessage(RandomWrapper::getRandomUInt64());
+		guid = RandomWrapper::getRandomUInt64();
+		sendSetGUIDMessage(guid);
+		std::shared_ptr<ArgusController> cnt = ArgusControllerManager::getController(guid);
+		if (cnt) {
+			controller = cnt;
+		}
+		else {
+			std::shared_ptr<ControllerConfig> cfg = ArgusConfig::getControllerConfig(guid);
+			if (!cfg) {
+				cfg = std::shared_ptr<ControllerConfig>(new ControllerConfig());
+				cfg->guid = guid;
+				ArgusConfig::setControllerConfig(cfg);
+			}
+			cnt = std::shared_ptr<ArgusController>(new ArgusController(cfg));
+		}
 	}
 }
 
@@ -112,24 +128,30 @@ void ConnectionTCP::processImageDataMessage(NetMessageIn* msg) {
 	uint64_t bufLen = msg->readVarInt();
 	uint8_t* buf = msg->readByteBlob((uint32_t)bufLen);
 #ifdef SDL_FOUND
-	VideoFrame* frame = new VideoFrame(buf, bufLen, VideoFrame::VideoFrameEncoding::VFE_JPEG);
-	ArgusVizUI::inst()->setNewFrame(std::shared_ptr<VideoFrame>(frame));
-	//printf("New videoframe received.\n");
+	auto frame = std::shared_ptr<VideoFrame>(new VideoFrame(buf, bufLen, VideoFrame::VideoFrameEncoding::VFE_JPEG));
+	ArgusVizUI::inst()->setNewFrame(frame);
+	if (controller) {
+		controller->setVideoFrame(frame, timestamp);
+	}
 	printf("New videoframe received. Timestamp: %llu.\n", timestamp);
 #endif
 }
 
 void ConnectionTCP::processIMUDataMessage(NetMessageIn* msg) {
 	uint64_t num = msg->readVarInt();
+	IMUData data;
 	for (int i = 0; i < num; ++i) {
-		int16_t aX = (int16_t)msg->readVarIntSigned();
-		int16_t aY = (int16_t)msg->readVarIntSigned();
-		int16_t aZ = (int16_t)msg->readVarIntSigned();
-		int16_t gX = (int16_t)msg->readVarIntSigned();
-		int16_t gY = (int16_t)msg->readVarIntSigned();
-		int16_t gZ = (int16_t)msg->readVarIntSigned();
-		uint64_t timestamp_us = msg->readVarInt(); // timestamp in microseconds.
-		printf("IMU: %6d %6d %6d - %6d %6d %6d, timestamp %llu.\n", aX, aY, aZ, gX, gY, gZ, timestamp_us);
+		data.aX = (int16_t)msg->readVarIntSigned();
+		data.aY = (int16_t)msg->readVarIntSigned();
+		data.aZ = (int16_t)msg->readVarIntSigned();
+		data.gX = (int16_t)msg->readVarIntSigned();
+		data.gY = (int16_t)msg->readVarIntSigned();
+		data.gZ = (int16_t)msg->readVarIntSigned();
+		data.timestamp_us = msg->readVarInt(); // timestamp in microseconds.
+		printf("IMU: %6d %6d %6d - %6d %6d %6d, timestamp %llu.\n", data.aX, data.aY, data.aZ, data.gX, data.gY, data.gZ, data.timestamp_us);
+		if (controller) {
+			controller->addIMUData(data);
+		}
 	}
 }
 

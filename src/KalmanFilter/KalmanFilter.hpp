@@ -1,3 +1,5 @@
+#ifndef ARGUSKALMANFILTER_H
+#define ARGUSKALMANFILTER_H
 
 // this MUST be first, otherwise there might be problems on windows
 // see: https://stackoverflow.com/questions/6563810/m-pi-works-with-math-h-but-not-with-cmath-in-visual-studio/6563891#6563891
@@ -36,21 +38,20 @@ typedef Robot1::OrientationMeasurementModel<T> OrientationModel;
 typedef Robot1::AccelerationMeasurementModel<T> AccelerationModel;
 
 class KalmanFilter {
+protected:
+    State x;
+    Control u;
+    SystemModel sys;
 public:
+    void init() {
+        x.initialize();
+    }
+
     void test()
     {
-        // Simulated (true) system state
-        State x;
-        x.initialize();
-
-        // Control input
-        Control u;
-        // System
-        SystemModel sys;
+        init();
 
         // Measurement models
-        // Set position landmarks at (-10, -10) and (30, 75)
-        PositionModel pm(-10, -10, 30, 75);
         OrientationModel om;
         AccelerationModel am;
 
@@ -77,8 +78,8 @@ public:
         for (size_t i = 1; i <= N; i++)
         {
             // Generate some control input
-            u.v() = 1.f + std::sin(T(2) * T(M_PI) / T(N));
-            u.dtheta() = std::sin(T(2) * T(M_PI) / T(N)) * (1 - 2 * (i > 50));
+            u.v() = 1.f + std::sin(T(2) * T(3.14f) / T(N));
+            u.dtheta() = std::sin(T(2) * T(3.14f) / T(N)) * (1 - 2 * (i > 50));
 
             // Simulate system
             x = sys.f(x, u);
@@ -99,7 +100,7 @@ public:
                 // Measurement is affected by noise as well
                 //orientation.theta() += orientationNoise * noise(generator);
                 Eigen::Quaternion<float> quat = x.getQuat();
-                Eigen::Quaternion<float> randomQuat = Eigen::Quaternion<float>::UnitRandom();
+                Eigen::Quaternion<float> randomQuat = Eigen::Quaternion<float>::UnitRandom().normalized();
                 quat = quat.slerp(orientationNoise, randomQuat).normalized();
 
                 orientation.ox() = quat.x();
@@ -109,19 +110,6 @@ public:
 
                 // Update UKF
                 x_ukf = ukf.update(om, orientation);
-            }
-
-            // Position measurement
-            {
-                // We can measure the position every 10th step
-                PositionMeasurement position = pm.h(x);
-
-                // Measurement is affected by noise as well
-                position.d1() += distanceNoise * noise(generator);
-                position.d2() += distanceNoise * noise(generator);
-
-                // Update UKF
-                //x_ukf = ukf.update(pm, position);
             }
 
             // Acceleration measurement
@@ -145,3 +133,4 @@ public:
         }
     }
 };
+#endif // ARGUSKALMANFILTER_H
