@@ -2,6 +2,7 @@
 #define KALMAN_EXAMPLES_ROBOT1_ORIENTATIONMEASUREMENTMODEL_HPP_
 
 #include <kalman/LinearizedMeasurementModel.hpp>
+#include <Eigen/src/Geometry/Quaternion.h>
 
 namespace KalmanExamples
 {
@@ -14,16 +15,26 @@ namespace Robot1
  * @param T Numeric scalar type
  */
 template<typename T>
-class OrientationMeasurement : public Kalman::Vector<T, 1>
+class OrientationMeasurement : public Kalman::Vector<T, 4>
 {
 public:
-    KALMAN_VECTOR(OrientationMeasurement, T, 1)
+    KALMAN_VECTOR(OrientationMeasurement, T, 4)
     
     //! Orientation
-    static constexpr size_t THETA = 0;
-    
-    T theta()  const { return (*this)[ THETA ]; }
-    T& theta() { return (*this)[ THETA ]; }
+    static constexpr size_t oX = 0;
+    static constexpr size_t oY = 0;
+    static constexpr size_t oZ = 0;
+    static constexpr size_t oW = 0;
+
+    T ox()  const { return (*this)[oX]; }
+    T oy()  const { return (*this)[oY]; }
+    T oz()  const { return (*this)[oZ]; }
+    T ow()  const { return (*this)[oW]; }
+
+    T& ox() { return (*this)[oX]; }
+    T& oy() { return (*this)[oY]; }
+    T& oz() { return (*this)[oZ]; }
+    T& ow() { return (*this)[oW]; }
 };
 
 /**
@@ -66,7 +77,17 @@ public:
         M measurement;
         
         // Measurement is given by the actual robot orientation
-        measurement.theta() = x.theta();
+        const float ow = x.ow();
+        const float ox = x.ox();
+        const float oy = x.oy();
+        const float oz = x.oz();
+        auto quat = Eigen::Quaternion<float>(ow, ox, oy, oz);
+        quat.normalize();
+
+        measurement.ox() = quat.x();
+        measurement.oy() = quat.y();
+        measurement.oz() = quat.z();
+        measurement.ow() = quat.w();
         
         return measurement;
     }

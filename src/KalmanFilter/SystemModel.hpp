@@ -2,6 +2,7 @@
 #define KALMAN_EXAMPLES1_ROBOT_SYSTEMMODEL_HPP_
 
 #include <kalman/LinearizedSystemModel.hpp>
+#include <Eigen/src/Geometry/Quaternion.h>
 
 namespace KalmanExamples
 {
@@ -17,29 +18,82 @@ namespace Robot1
  * @param T Numeric scalar type
  */
 template<typename T>
-class State : public Kalman::Vector<T, 4>
+class State : public Kalman::Vector<T, 13>
 {
 public:
-    KALMAN_VECTOR(State, T, 4)
+    KALMAN_VECTOR(State, T, 13)
     
-    //! X-position
+
+
+    // position
     static constexpr size_t pX = 0;
-    //! Y-Position
     static constexpr size_t pY = 1;
-    //! Z-Position
     static constexpr size_t pZ = 2;
-    //! Orientation
-    static constexpr size_t THETA = 3;
+
+    // velocity
+    static constexpr size_t vX = 3;
+    static constexpr size_t vY = 4;
+    static constexpr size_t vZ = 5;
+
+    // linear acceleration
+    static constexpr size_t aX = 6;
+    static constexpr size_t aY = 7;
+    static constexpr size_t aZ = 8;
+
+    // orientation quaternion
+    static constexpr size_t oX = 9;
+    static constexpr size_t oY = 10;
+    static constexpr size_t oZ = 11;
+    static constexpr size_t oW = 12;
 
     T px()       const { return (*this)[pX]; }
     T py()       const { return (*this)[pY]; }
     T pz()       const { return (*this)[pZ]; }
-    T theta()   const { return (*this)[ THETA ]; }
+
+    T vx()       const { return (*this)[vX]; }
+    T vy()       const { return (*this)[vY]; }
+    T vz()       const { return (*this)[vZ]; }
+
+    T ax()       const { return (*this)[aX]; }
+    T ay()       const { return (*this)[aY]; }
+    T az()       const { return (*this)[aZ]; }
+
+    T ox()       const { return (*this)[oX]; }
+    T oy()       const { return (*this)[oY]; }
+    T oz()       const { return (*this)[oZ]; }
+    T ow()       const { return (*this)[oW]; }
 
     T& px() { return (*this)[pX]; }
     T& py() { return (*this)[pY]; }
     T& pz() { return (*this)[pZ]; }
-    T& theta()  { return (*this)[ THETA ]; }
+
+    T& vx() { return (*this)[vX]; }
+    T& vy() { return (*this)[vY]; }
+    T& vz() { return (*this)[vZ]; }
+
+    T& ax() { return (*this)[aX]; }
+    T& ay() { return (*this)[aY]; }
+    T& az() { return (*this)[aZ]; }
+
+    T& ox() { return (*this)[oX]; }
+    T& oy() { return (*this)[oY]; }
+    T& oz() { return (*this)[oZ]; }
+    T& ow() { return (*this)[oW]; }
+
+    void initialize() {
+        setZero();
+
+        // quaternion identity is 0, 0, 0, 1
+        ow() = 1;
+    }
+
+    Eigen::Quaternion<float> const getQuat() {
+        const float w = ow();
+        const float x = ox();
+        const float y = oy();
+        const float z = oz();
+        return Eigen::Quaternion<float>(w, x, y, z);
+    }
 };
 
 /**
@@ -106,19 +160,46 @@ public:
     {
         //! Predicted state vector after transition
         S x_;
+
+        const float ox = x.ox();
+        const float oy = x.oy();
+        const float oz = x.oz();
+        const float ow = x.ow();
+        auto quat = Eigen::Quaternion<float>(ow, ox, oy, oz);
+        auto vec = Eigen::Vector3f(0, 0, 1);
+        auto angleAxis = Eigen::AngleAxis<float>(u.dtheta(), vec);
+        auto rotatingQuat = Eigen::Quaternion<float>::Quaternion(angleAxis);
+        auto rotatedQuat = (rotatingQuat * quat).normalized();
         
-        // New orientation given by old orientation plus orientation change
+        /*// New orientation given by old orientation plus orientation change
         auto newOrientation = x.theta() + u.dtheta();
         // Re-scale orientation to [-pi/2 to +pi/2]
         
-        x_.theta() = newOrientation;
+        x_.theta() = newOrientation;*/
+
+        x_.ox() = rotatedQuat.x();
+        x_.oy() = rotatedQuat.y();
+        x_.oz() = rotatedQuat.z();
+        x_.ow() = rotatedQuat.w();
         
         // New x-position given by old x-position plus change in x-direction
         // Change in x-direction is given by the cosine of the (new) orientation
         // times the velocity
-        x_.px() = x.px() + std::cos( newOrientation ) * u.v();
-        x_.py() = x.py() + std::sin( newOrientation ) * u.v();
-        x_.pz() = x.pz();
+
+        auto forward = Eigen::Vector3f(0, 1, 0);
+        auto forwardRotated = quat.normalized() * forward;
+
+        x_.px() = x.px() + x.vx();
+        x_.py() = x.py() + x.vy();
+        x_.pz() = x.pz() + x.vz();
+
+        x_.vx() = x.vx() + x.ax();
+        x_.vy() = x.vy() + x.ay();
+        x_.vz() = x.vz() + x.az();
+
+        x_.ax() = x.ax() * 0.5f + forwardRotated.x() * u.v() / 100.0f;
+        x_.ay() = x.ay() * 0.5f + forwardRotated.y() * u.v() / 100.0f;
+        x_.az() = x.az() * 0.5f + forwardRotated.z() * u.v() / 100.0f;
         
         // Return transitioned state vector
         return x_;

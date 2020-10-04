@@ -1,4 +1,4 @@
-target_sources(argus-main PRIVATE KalmanFilter.hpp SystemModel.hpp OrientationMeasurementModel.hpp PositionMeasurementModel.hpp)
+target_sources(argus-main PRIVATE KalmanFilter.hpp SystemModel.hpp OrientationMeasurementModel.hpp PositionMeasurementModel.hpp AccelerationMeasurementModel.hpp)
 target_include_directories(argus-main PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 find_package(kalman REQUIRED)
 find_package(eigen3 REQUIRED)
