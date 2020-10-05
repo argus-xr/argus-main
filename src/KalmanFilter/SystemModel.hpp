@@ -18,10 +18,10 @@ namespace Robot1
  * @param T Numeric scalar type
  */
 template<typename T>
-class State : public Kalman::Vector<T, 13>
+class State : public Kalman::Vector<T, 18>
 {
 public:
-    KALMAN_VECTOR(State, T, 13)
+    KALMAN_VECTOR(State, T, 18)
     
 
 
@@ -40,11 +40,16 @@ public:
     static constexpr size_t aY = 7;
     static constexpr size_t aZ = 8;
 
-    // orientation quaternion
-    static constexpr size_t oX = 9;
-    static constexpr size_t oY = 10;
-    static constexpr size_t oZ = 11;
-    static constexpr size_t oW = 12;
+    // orientation 3x3 matrix
+    static constexpr size_t O11 = 9;
+    static constexpr size_t O12 = 10;
+    static constexpr size_t O13 = 11;
+    static constexpr size_t O21 = 12;
+    static constexpr size_t O22 = 13;
+    static constexpr size_t O23 = 14;
+    static constexpr size_t O31 = 15;
+    static constexpr size_t O32 = 16;
+    static constexpr size_t O33 = 17;
 
     T px()       const { return (*this)[pX]; }
     T py()       const { return (*this)[pY]; }
@@ -58,10 +63,15 @@ public:
     T ay()       const { return (*this)[aY]; }
     T az()       const { return (*this)[aZ]; }
 
-    T ox()       const { return (*this)[oX]; }
-    T oy()       const { return (*this)[oY]; }
-    T oz()       const { return (*this)[oZ]; }
-    T ow()       const { return (*this)[oW]; }
+    T o11()       const { return (*this)[O11]; }
+    T o12()       const { return (*this)[O12]; }
+    T o13()       const { return (*this)[O13]; }
+    T o21()       const { return (*this)[O21]; }
+    T o22()       const { return (*this)[O22]; }
+    T o23()       const { return (*this)[O23]; }
+    T o31()       const { return (*this)[O31]; }
+    T o32()       const { return (*this)[O32]; }
+    T o33()       const { return (*this)[O33]; }
 
     T& px() { return (*this)[pX]; }
     T& py() { return (*this)[pY]; }
@@ -75,24 +85,51 @@ public:
     T& ay() { return (*this)[aY]; }
     T& az() { return (*this)[aZ]; }
 
-    T& ox() { return (*this)[oX]; }
-    T& oy() { return (*this)[oY]; }
-    T& oz() { return (*this)[oZ]; }
-    T& ow() { return (*this)[oW]; }
+    T& o11() { return (*this)[O11]; }
+    T& o12() { return (*this)[O12]; }
+    T& o13() { return (*this)[O13]; }
+    T& o21() { return (*this)[O21]; }
+    T& o22() { return (*this)[O22]; }
+    T& o23() { return (*this)[O23]; }
+    T& o31() { return (*this)[O31]; }
+    T& o32() { return (*this)[O32]; }
+    T& o33() { return (*this)[O33]; }
+
+    float timestep = 0.01f;
 
     void initialize() {
         setZero();
 
         // quaternion identity is 0, 0, 0, 1
-        ow() = 1;
+        //ow() = 1;
+        setQuat(*this, Eigen::Quaternion<float>::Identity());
     }
 
-    Eigen::Quaternion<float> const getQuat() {
-        const float w = ow();
-        const float x = ox();
-        const float y = oy();
-        const float z = oz();
-        return Eigen::Quaternion<float>(w, x, y, z);
+    static const Eigen::Matrix3f getMatrix(const State<T> state) {
+        Eigen::Matrix3f o;
+        o << state.o11(), state.o12(), state.o13(), state.o21(), state.o22(), state.o23(), state.o31(), state.o32(), state.o33();
+        return o;
+    }
+
+    static const Eigen::Quaternion<float> getQuat(const State<T> state) {
+        return Eigen::Quaternion<float>(getMatrix(state));
+    }
+
+    static void setMatrix(State<T> state, Eigen::Matrix3f m) {
+        state.o11() = (float)m(0, 0);
+        state.o12() = (float)m(0, 1);
+        state.o13() = (float)m(0, 2);
+        state.o21() = (float)m(1, 0);
+        state.o22() = (float)m(1, 1);
+        state.o23() = (float)m(1, 2);
+        state.o31() = (float)m(2, 0);
+        state.o32() = (float)m(2, 1);
+        state.o33() = (float)m(2, 2);
+    }
+
+
+    static void setQuat(State<T> state, Eigen::Quaternion<float> q) {
+        setMatrix(state, Eigen::Matrix3f(q));
     }
 };
 
@@ -161,11 +198,7 @@ public:
         //! Predicted state vector after transition
         S x_;
 
-        const float ox = x.ox();
-        const float oy = x.oy();
-        const float oz = x.oz();
-        const float ow = x.ow();
-        auto quat = Eigen::Quaternion<float>(ow, ox, oy, oz);
+        auto quat = S::getQuat(x);
         auto vec = Eigen::Vector3f(0, 0, 1);
         auto angleAxis = Eigen::AngleAxis<float>(u.dtheta(), vec);
         auto rotatingQuat = Eigen::Quaternion<float>::Quaternion(angleAxis);
@@ -177,10 +210,7 @@ public:
         
         x_.theta() = newOrientation;*/
 
-        x_.ox() = rotatedQuat.x();
-        x_.oy() = rotatedQuat.y();
-        x_.oz() = rotatedQuat.z();
-        x_.ow() = rotatedQuat.w();
+        S::setQuat(x, rotatedQuat);
         
         // New x-position given by old x-position plus change in x-direction
         // Change in x-direction is given by the cosine of the (new) orientation
@@ -189,17 +219,17 @@ public:
         auto forward = Eigen::Vector3f(0, 1, 0);
         auto forwardRotated = quat.normalized() * forward;
 
-        x_.px() = x.px() + x.vx();
-        x_.py() = x.py() + x.vy();
-        x_.pz() = x.pz() + x.vz();
+        x_.px() = x.px() + x.vx() * x.timestep;
+        x_.py() = x.py() + x.vy() * x.timestep;
+        x_.pz() = x.pz() + x.vz() * x.timestep;
 
-        x_.vx() = x.vx() + x.ax();
-        x_.vy() = x.vy() + x.ay();
-        x_.vz() = x.vz() + x.az();
+        x_.vx() = x.vx() + x.ax() * x.timestep;
+        x_.vy() = x.vy() + x.ay() * x.timestep;
+        x_.vz() = x.vz() + x.az() * x.timestep;
 
-        x_.ax() = x.ax() * 0.5f + forwardRotated.x() * u.v() / 100.0f;
-        x_.ay() = x.ay() * 0.5f + forwardRotated.y() * u.v() / 100.0f;
-        x_.az() = x.az() * 0.5f + forwardRotated.z() * u.v() / 100.0f;
+        x_.ax() = x.ax() + (forwardRotated.x() * u.v() - x.vx()) * x.timestep * 100.0f;
+        x_.ay() = x.ay() + (forwardRotated.y() * u.v() - x.vy()) * x.timestep * 100.0f;
+        x_.az() = x.az() + (forwardRotated.z() * u.v() - x.vz()) * x.timestep * 100.0f;
         
         // Return transitioned state vector
         return x_;

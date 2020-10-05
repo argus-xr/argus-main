@@ -14,12 +14,7 @@
 
 #include "KalmanFilter.hpp"
 #include "ControllerConfig.h"
-
-struct IMUData {
-	int16_t aX, aY, aZ;
-	int16_t gX, gY, gZ;
-	uint64_t timestamp_us; // microseconds
-};
+#include "IMUData.h"
 
 class ArgusController {
 protected:
