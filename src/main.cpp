@@ -23,8 +23,8 @@ int main(int argc, char* argv[]) {
     server = new ServerTCP();
     server->start();
 
-    KalmanFilter *kf = new KalmanFilter();
-    kf->test();
+    /*KalmanFilter *kf = new KalmanFilter();
+    kf->test();*/
 
     while (true) {
         server->poll();

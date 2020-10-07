@@ -65,14 +65,12 @@ public:
     }
 
     void loop() {
-        sys.f(x, u);
         x = ukf.predict(sys);
     }
 
     void feedIMU(IMUData id) {
         // Acceleration measurement
         {
-            // We can measure the position every 10th step
             AccelerationMeasurement acceleration = am.h(x);
 
             acceleration.ax() = id.aX;
@@ -82,6 +80,16 @@ public:
             // Update UKF
             x = ukf.update(am, acceleration);
         }
+    }
+
+    Eigen::Quaternion<double> getOrientation() {
+        State s = ukf.getState();
+        return State::getQuat(s);
+    }
+
+    Eigen::Vector3d getPosition() {
+        State s = ukf.getState();
+        return Eigen::Vector3d(s.px(), s.py(), s.pz());
     }
 
     void test()

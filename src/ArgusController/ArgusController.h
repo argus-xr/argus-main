@@ -25,8 +25,8 @@ protected:
 
 	std::stack<IMUData> IMUDataQueue;
 
-	Eigen::Quaternion<float> orientation;
-	Eigen::Vector3f position;
+	Eigen::Quaternion<double> orientation;
+	Eigen::Vector3d position;
 
 	KalmanFilter kf;
 	std::shared_ptr<ControllerConfig> config;
@@ -35,6 +35,7 @@ public:
 	ArgusController(std::shared_ptr<ControllerConfig> config);
 	void setVideoFrame(std::shared_ptr<VideoFrame> newFrame, uint64_t timestamp);
 	void addIMUData(IMUData data);
+	void printTracking();
 };
 
 #endif // ARGUSCONTROLLER_H

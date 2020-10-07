@@ -93,19 +93,19 @@ void ConnectionTCP::processHandshakeMessage(NetMessageIn* msg) {
 	if (guid == 0) {
 		guid = RandomWrapper::getRandomUInt64();
 		sendSetGUIDMessage(guid);
-		std::shared_ptr<ArgusController> cnt = ArgusControllerManager::getController(guid);
-		if (cnt) {
-			controller = cnt;
+	}
+	std::shared_ptr<ArgusController> cnt = ArgusControllerManager::getController(guid);
+	if (cnt) {
+		controller = cnt;
+	}
+	else {
+		std::shared_ptr<ControllerConfig> cfg = ArgusConfig::getControllerConfig(guid);
+		if (!cfg) {
+			cfg = std::shared_ptr<ControllerConfig>(new ControllerConfig());
+			cfg->guid = guid;
+			ArgusConfig::setControllerConfig(cfg);
 		}
-		else {
-			std::shared_ptr<ControllerConfig> cfg = ArgusConfig::getControllerConfig(guid);
-			if (!cfg) {
-				cfg = std::shared_ptr<ControllerConfig>(new ControllerConfig());
-				cfg->guid = guid;
-				ArgusConfig::setControllerConfig(cfg);
-			}
-			cnt = std::shared_ptr<ArgusController>(new ArgusController(cfg));
-		}
+		controller = std::shared_ptr<ArgusController>(new ArgusController(cfg));
 	}
 }
 
@@ -148,9 +148,12 @@ void ConnectionTCP::processIMUDataMessage(NetMessageIn* msg) {
 		data.gY = (int16_t)msg->readVarIntSigned();
 		data.gZ = (int16_t)msg->readVarIntSigned();
 		data.timestamp_us = msg->readVarInt(); // timestamp in microseconds.
-		printf("IMU: %6d %6d %6d - %6d %6d %6d, timestamp %llu.\n", data.aX, data.aY, data.aZ, data.gX, data.gY, data.gZ, data.timestamp_us);
 		if (controller) {
 			controller->addIMUData(data);
+			controller->printTracking();
+		}
+		else {
+			printf("IMU: %6d %6d %6d - %6d %6d %6d, timestamp %llu.\n", data.aX, data.aY, data.aZ, data.gX, data.gY, data.gZ, data.timestamp_us);
 		}
 	}
 }
