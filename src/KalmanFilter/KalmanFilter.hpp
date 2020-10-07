@@ -113,10 +113,6 @@ public:
         const size_t N = 500;
         for (size_t i = 1; i <= N; i++)
         {
-            // Generate some control input
-            u.v() = 1.f + std::sin(T(2) * T(3.14f) / T(N));
-            u.dtheta() = std::sin(T(2) * T(3.14f) / T(N)) * (1 - 2 * (i > N / 2));
-
             // Simulate system
             x = sys.f(x, u);
             est = sys.f(est, u);
@@ -132,6 +128,28 @@ public:
                 quat = quat.slerp(orientationNoise, randomQuat).normalized();
 
                 State::setQuat(x, quat);
+            }
+
+            {
+                // move simulated state around
+
+                float velocity = (1.f + std::sin(T(2) * T(3.14f) / T(N))) * 100.0f;
+                float steer = std::sin(T(2) * T(3.14f) / T(N)) * (1 - 2 * (i > N / 2));
+
+                Eigen::Vector3f vel(x.vx(), x.vy(), x.vz());
+                Eigen::Vector3f newVel(0, velocity, 0);
+                auto quat = State::getQuat(x);
+                newVel = quat * newVel;
+
+                x.ax() = x.ax() + ((newVel.x() - x.vx()) - x.ax()) * 0.01f;
+                x.ay() = x.ay() + ((newVel.y() - x.vy()) - x.ay()) * 0.01f;
+                x.az() = x.az() + ((newVel.z() - x.vz()) - x.az()) * 0.01f;
+
+                auto angleAxis = Eigen::AngleAxis<float>(steer, Eigen::Vector3f::UnitZ());
+                auto rotatingQuat = Eigen::Quaternion<float>::Quaternion(angleAxis);
+                auto rotatedQuat = (rotatingQuat * quat).normalized();
+
+                State::setQuat(x, rotatedQuat);
             }
 
             // Predict state for current time-step using the filters
@@ -184,13 +202,13 @@ public:
                 est = ukf.update(rm, rotation);*/
             }
 
-            if (i % 10 == 0) {
+            if (i % 10 == 0 || i < 20) {
                 auto xQuat = State::getQuat(x);
                 // Print to stdout as csv format
-                printf("Kalman test: p %6.2f, %6.2f, %6.2f - v %6.2f, %6.2f, %6.2f - a %6.2f, %6.2f, %6.2f - q %6.2f, %6.2f, %6.2f, %6.2f\n", x.px(), x.py(), x.pz(),
+                printf("Round %d: p %6.2f, %6.2f, %6.2f - v %6.2f, %6.2f, %6.2f - a %6.2f, %6.2f, %6.2f - q %6.2f, %6.2f, %6.2f, %6.2f\n", i, x.px(), x.py(), x.pz(),
                     x.vx(), x.vy(), x.vz(), x.ax(), x.ay(), x.az(), xQuat.w(), xQuat.x(), xQuat.y(), xQuat.z());
                 auto estQuat = State::getQuat(est);
-                printf("Estimate:    p %6.2f, %6.2f, %6.2f - v %6.2f, %6.2f, %6.2f - a %6.2f, %6.2f, %6.2f - q %6.2f, %6.2f, %6.2f, %6.2f\n\n", est.px(), est.py(), est.pz(),
+                printf("Estimate: p %6.2f, %6.2f, %6.2f - v %6.2f, %6.2f, %6.2f - a %6.2f, %6.2f, %6.2f - q %6.2f, %6.2f, %6.2f, %6.2f\n\n", est.px(), est.py(), est.pz(),
                     est.vx(), est.vy(), est.vz(), est.ax(), est.ay(), est.az(), estQuat.w(), estQuat.x(), estQuat.y(), estQuat.z());
             }
         }

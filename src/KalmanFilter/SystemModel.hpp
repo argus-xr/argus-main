@@ -195,21 +195,11 @@ public:
  * @param T Numeric scalar type
  */
 template<typename T>
-class Control : public Kalman::Vector<T, 2>
+class Control : public Kalman::Vector<T, 0>
 {
 public:
-    KALMAN_VECTOR(Control, T, 2)
+    KALMAN_VECTOR(Control, T, 0)
     
-    //! Velocity
-    static constexpr size_t V = 0;
-    //! Angular Rate (Orientation-change)
-    static constexpr size_t DTHETA = 1;
-    
-    T v()       const { return (*this)[ V ]; }
-    T dtheta()  const { return (*this)[ DTHETA ]; }
-    
-    T& v()      { return (*this)[ V ]; }
-    T& dtheta() { return (*this)[ DTHETA ]; }
 };
 
 /**
@@ -251,10 +241,6 @@ public:
         S x_;
 
         auto quat = S::getQuat(x);
-        auto vec = Eigen::Vector3f(0, 0, 1);
-        auto angleAxis = Eigen::AngleAxis<float>(u.dtheta(), vec);
-        auto rotatingQuat = Eigen::Quaternion<float>::Quaternion(angleAxis);
-        auto rotatedQuat = (rotatingQuat * quat).normalized();
         
         /*// New orientation given by old orientation plus orientation change
         auto newOrientation = x.theta() + u.dtheta();
@@ -262,26 +248,23 @@ public:
         
         x_.theta() = newOrientation;*/
 
-        S::setQuat(x_, rotatedQuat);
+        S::setQuat(x_, quat.normalized());
         
         // New x-position given by old x-position plus change in x-direction
         // Change in x-direction is given by the cosine of the (new) orientation
         // times the velocity
 
-        auto forward = Eigen::Vector3f(0, 1, 0);
-        auto forwardRotated = quat.normalized() * forward;
+        x_.px() = x.px() + (x.vx() + x.ax() * 0.5f) * x.timestep;
+        x_.py() = x.py() + (x.vy() + x.ay() * 0.5f) * x.timestep;
+        x_.pz() = x.pz() + (x.vz() + x.az() * 0.5f) * x.timestep;
 
-        x_.px() = x.px() + x.vx() * x.timestep;
-        x_.py() = x.py() + x.vy() * x.timestep;
-        x_.pz() = x.pz() + x.vz() * x.timestep;
+        x_.vx() = x.vx() + x.ax() * x.timestep;
+        x_.vy() = x.vy() + x.ay() * x.timestep;
+        x_.vz() = x.vz() + x.az() * x.timestep;
 
-        x_.vx() = x.vx() + (forwardRotated.x() * 100.0f - x.vx()) * 0.1f;
-        x_.vy() = x.vy() + (forwardRotated.y() * 100.0f - x.vy()) * 0.1f;
-        x_.vz() = x.vz() + (forwardRotated.z() * 100.0f - x.vz()) * 0.1f;
-
-        x_.ax() = x_.vx() - x.vx();
-        x_.ay() = x_.vy() - x.vy();
-        x_.az() = x_.vz() - x.vz();
+        x_.ax() = x.ax();
+        x_.ay() = x.ay();
+        x_.az() = x.az();
         
         // Return transitioned state vector
         return x_;
