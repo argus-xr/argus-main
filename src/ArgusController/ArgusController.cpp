@@ -11,8 +11,23 @@ void ArgusController::setVideoFrame(std::shared_ptr<VideoFrame> newFrame, uint64
 }
 
 void ArgusController::addIMUData(IMUData data) {
+	uint64_t roundedStep = (data.timestamp_us + timestepLength / 2) / timestepLength; // round to 10 ms timesteps
+	if (roundedStep - lastIMUStep > 1000 || lastIMUStep <= 0) { // lost IMU for a full 10 seconds (1000 steps), or only just started.
+		kf.init();
+		kf.loop();
+		lastIMUStep = roundedStep + 1;
+	}
+	else {
+		uint64_t steps = roundedStep - lastIMUStep;
+
+		for (int i = 0; i < steps; ++i) {
+			kf.loop();
+		}
+
+		lastIMUStep = roundedStep;
+	}
 	kf.feedIMU(data);
-	//IMUDataQueue.push(data);
+
 	position = kf.getPosition();
 	orientation = kf.getOrientation();
 }

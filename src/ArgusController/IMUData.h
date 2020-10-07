@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 struct IMUData {
-	int16_t aX, aY, aZ;
-	int16_t gX, gY, gZ;
+	float aX, aY, aZ;
+	float gX, gY, gZ;
 	uint64_t timestamp_us; // microseconds
 };
 

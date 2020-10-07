@@ -140,21 +140,23 @@ void ConnectionTCP::processImageDataMessage(NetMessageIn* msg) {
 void ConnectionTCP::processIMUDataMessage(NetMessageIn* msg) {
 	uint64_t num = msg->readVarInt();
 	IMUData data;
+	const float AMult = 8.0f * 9.81f / INT16_MAX; // accelerometer multiplier, converting to m/s^2
+	const float GMult = 1000.0f / INT16_MAX; // gyro multiplier, converting to deg/sec
 	for (int i = 0; i < num; ++i) {
-		data.aX = (int16_t)msg->readVarIntSigned();
-		data.aY = (int16_t)msg->readVarIntSigned();
-		data.aZ = (int16_t)msg->readVarIntSigned();
-		data.gX = (int16_t)msg->readVarIntSigned();
-		data.gY = (int16_t)msg->readVarIntSigned();
-		data.gZ = (int16_t)msg->readVarIntSigned();
+		data.aX = (float)msg->readVarIntSigned() * AMult;
+		data.aY = (float)msg->readVarIntSigned() * AMult;
+		data.aZ = (float)msg->readVarIntSigned() * AMult;
+		data.gX = (float)msg->readVarIntSigned() * GMult;
+		data.gY = (float)msg->readVarIntSigned() * GMult;
+		data.gZ = (float)msg->readVarIntSigned() * GMult;
 		data.timestamp_us = msg->readVarInt(); // timestamp in microseconds.
 		if (controller) {
 			controller->addIMUData(data);
 			controller->printTracking();
 		}
-		else {
-			printf("IMU: %6d %6d %6d - %6d %6d %6d, timestamp %llu.\n", data.aX, data.aY, data.aZ, data.gX, data.gY, data.gZ, data.timestamp_us);
-		}
+		//else {
+			printf("IMU: %6.2f %6.2f %6.2f - %6.2f %6.2f %6.2f, timestamp %llu.\n", data.aX, data.aY, data.aZ, data.gX, data.gY, data.gZ, data.timestamp_us);
+		//}
 	}
 }
 

@@ -24,6 +24,8 @@ protected:
 	uint64_t lastFrameTimestamp = 0;
 
 	std::stack<IMUData> IMUDataQueue;
+	uint64_t lastIMUStep = 0;
+	uint64_t timestepLength = 10000; // 10 ms
 
 	Eigen::Quaternion<double> orientation;
 	Eigen::Vector3d position;
