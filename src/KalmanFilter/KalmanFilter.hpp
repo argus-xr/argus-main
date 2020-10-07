@@ -11,6 +11,7 @@
 #include "OrientationMeasurementModel.hpp"
 #include "AccelerationMeasurementModel.hpp"
 #include "PositionMeasurementModel.hpp"
+#include "RotationMeasurementModel.hpp"
 
 #include <kalman/ExtendedKalmanFilter.hpp>
 #include <kalman/UnscentedKalmanFilter.hpp>
@@ -35,9 +36,11 @@ typedef Robot1::SystemModel<T> SystemModel;
 typedef Robot1::PositionMeasurement<T> PositionMeasurement;
 typedef Robot1::OrientationMeasurement<T> OrientationMeasurement;
 typedef Robot1::AccelerationMeasurement<T> AccelerationMeasurement;
+typedef Robot1::RotationMeasurement<T> RotationMeasurement;
 typedef Robot1::PositionMeasurementModel<T> PositionModel;
 typedef Robot1::OrientationMeasurementModel<T> OrientationModel;
 typedef Robot1::AccelerationMeasurementModel<T> AccelerationModel;
+typedef Robot1::RotationMeasurementModel<T> RotationModel;
 
 class KalmanFilter {
 protected:
@@ -48,6 +51,7 @@ protected:
     // Measurement models
     OrientationModel om;
     AccelerationModel am;
+    RotationModel rm;
 
     // Unscented Kalman Filter
     Kalman::UnscentedKalmanFilter<State> ukf;
@@ -100,6 +104,10 @@ public:
         // Standard-Deviation of noise added to all measurement vector components in distance measurements
         T distanceNoise = 0.25f;
         T accelerometerNoise = 0.25f;
+        T gyroDriftNoise = 0.25f;
+
+        Eigen::Vector3f gyroDrift;
+        gyroDrift.setZero();
 
         // Simulate for 100 steps
         const size_t N = 500;
@@ -157,6 +165,23 @@ public:
 
                 // Update UKF
                 est = ukf.update(am, acceleration);
+            }
+
+            // Rotation measurement
+            {
+                // We can measure the position every 10th step
+                /*RotationMeasurement rotation = rm.h(x);
+
+                gyroDrift.x() += gyroDriftNoise * noise(generator);
+                gyroDrift.y() += gyroDriftNoise * noise(generator);
+                gyroDrift.z() += gyroDriftNoise * noise(generator);
+
+                rotation.rx() += gyroDrift.x();
+                rotation.ry() += gyroDrift.y();
+                rotation.rz() += gyroDrift.z();
+
+                // Update UKF
+                est = ukf.update(rm, rotation);*/
             }
 
             if (i % 10 == 0) {
