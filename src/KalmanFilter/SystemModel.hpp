@@ -126,14 +126,14 @@ protected:
     T& oz() { return (*this)[oZ]; }
 
 public:
-    float timestep = 0.01f;
+    T timestep = T(0.01);
 
     void initialize() {
         setZero();
 
         // quaternion identity is 0, 0, 0, 1
         //ow() = 1;
-        setQuat(*this, Eigen::Quaternion<float>::Identity());
+        setQuat(*this, Eigen::Quaternion<T>::Identity());
     }
 
     /*static const Eigen::Matrix3f getMatrix(const State<T> state) {
@@ -163,26 +163,26 @@ public:
         setMatrix(state, Eigen::Matrix3f(q));
     }*/
 
-    static const Eigen::Matrix3f getMatrix(const State<T> state) {
-        return Eigen::Matrix3f(getQuat(state));
+    static const Eigen::Matrix3d getMatrix(const State<T> state) {
+        return Eigen::Matrix3d(getQuat(state));
     }
 
-    static const Eigen::Quaternion<float> getQuat(const State<T> state) {
-        return Eigen::Quaternion<float>(state.ow() / quatMult, state.ox() / quatMult, state.oy() / quatMult, state.oz() / quatMult);
+    static const Eigen::Quaternion<T> getQuat(const State<T> state) {
+        return Eigen::Quaternion<T>(state.ow() / quatMult, state.ox() / quatMult, state.oy() / quatMult, state.oz() / quatMult);
     }
 
-    static void setMatrix(State<T> &state, Eigen::Matrix3f m) {
-        setQuat(state, Eigen::Quaternion<float>(m));
+    static void setMatrix(State<T> &state, Eigen::Matrix3d m) {
+        setQuat(state, Eigen::Quaternion<T>(m));
     }
 
-    static void setQuat(State<T> &state, Eigen::Quaternion<float> q) {
+    static void setQuat(State<T> &state, Eigen::Quaternion<T> q) {
         state.ow() = q.w() * quatMult;
         state.ox() = q.x() * quatMult;
         state.oy() = q.y() * quatMult;
         state.oz() = q.z() * quatMult;
     }
 
-    static const inline float quatMult = 10.0f;
+    static const inline T quatMult = T(10.0);
 };
 
 /**
@@ -254,9 +254,9 @@ public:
         // Change in x-direction is given by the cosine of the (new) orientation
         // times the velocity
 
-        x_.px() = x.px() + (x.vx() + x.ax() * 0.5f) * x.timestep;
-        x_.py() = x.py() + (x.vy() + x.ay() * 0.5f) * x.timestep;
-        x_.pz() = x.pz() + (x.vz() + x.az() * 0.5f) * x.timestep;
+        x_.px() = x.px() + (x.vx()/* + x.ax() * 0.5f*/) * x.timestep;
+        x_.py() = x.py() + (x.vy()/* + x.ay() * 0.5f*/) * x.timestep;
+        x_.pz() = x.pz() + (x.vz()/* + x.az() * 0.5f*/) * x.timestep;
 
         x_.vx() = x.vx() + x.ax() * x.timestep;
         x_.vy() = x.vy() + x.ay() * x.timestep;
@@ -266,6 +266,10 @@ public:
         x_.ay() = x.ay();
         x_.az() = x.az();
         
+        x_.rx() = x.rx();
+        x_.ry() = x.ry();
+        x_.rz() = x.rz();
+
         // Return transitioned state vector
         return x_;
     }

@@ -5,3 +5,4 @@ find_package(eigen3 REQUIRED)
 
 target_include_directories(argus-main PRIVATE ${KALMAN_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS})
 add_definitions( ${EIGEN3_DEFINITIONS} )
+add_definitions( EIGEN_NO_DEBUG )

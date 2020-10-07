@@ -53,34 +53,34 @@ protected:
     T& o33() { return (*this)[O33]; }
 
 public:
-    static const Eigen::Matrix3f getMatrix(const OrientationMeasurement<T> om) {
-        Eigen::Matrix3f o;
+    static const Eigen::Matrix3d getMatrix(const OrientationMeasurement<T> om) {
+        Eigen::Matrix3d o;
         o << om.o11() / matMult, om.o12() / matMult, om.o13() / matMult, om.o21() / matMult, om.o22() / matMult, om.o23() / matMult, om.o31() / matMult, om.o32() / matMult, om.o33() / matMult;
         return o;
     }
 
-    static const Eigen::Quaternion<float> getQuat(const OrientationMeasurement<T> om) {
-        return Eigen::Quaternion<float>(getMatrix(om));
+    static const Eigen::Quaternion<T> getQuat(const OrientationMeasurement<T> om) {
+        return Eigen::Quaternion<T>(getMatrix(om));
     }
 
-    static void setMatrix(OrientationMeasurement<T> &om, Eigen::Matrix3f m) {
-        om.o11() = (float)m(0, 0) * matMult;
-        om.o12() = (float)m(0, 1) * matMult;
-        om.o13() = (float)m(0, 2) * matMult;
-        om.o21() = (float)m(1, 0) * matMult;
-        om.o22() = (float)m(1, 1) * matMult;
-        om.o23() = (float)m(1, 2) * matMult;
-        om.o31() = (float)m(2, 0) * matMult;
-        om.o32() = (float)m(2, 1) * matMult;
-        om.o33() = (float)m(2, 2) * matMult;
+    static void setMatrix(OrientationMeasurement<T> &om, Eigen::Matrix3d m) {
+        om.o11() = (T)m(0, 0) * matMult;
+        om.o12() = (T)m(0, 1) * matMult;
+        om.o13() = (T)m(0, 2) * matMult;
+        om.o21() = (T)m(1, 0) * matMult;
+        om.o22() = (T)m(1, 1) * matMult;
+        om.o23() = (T)m(1, 2) * matMult;
+        om.o31() = (T)m(2, 0) * matMult;
+        om.o32() = (T)m(2, 1) * matMult;
+        om.o33() = (T)m(2, 2) * matMult;
     }
 
 
-    static void setQuat(OrientationMeasurement<T> &om, Eigen::Quaternion<float> q) {
-        setMatrix(om, Eigen::Matrix3f(q));
+    static void setQuat(OrientationMeasurement<T> &om, Eigen::Quaternion<T> q) {
+        setMatrix(om, Eigen::Matrix3d(q));
     }
 
-    static const inline float matMult = 2.0f;
+    static const inline T matMult = 2.0f;
 };
 
 /**
@@ -123,7 +123,7 @@ public:
         M measurement;
         
         // Measurement is given by the actual robot orientation
-        Eigen::Matrix3f m = S::getMatrix(x).normalized();
+        Eigen::Matrix3d m = S::getMatrix(x).normalized();
 
         M::setMatrix(measurement, m);
         

@@ -26,7 +26,7 @@
 
 using namespace KalmanExamples;
 
-typedef float T;
+typedef double T;
 
 // Some type shortcuts
 typedef Robot1::State<T> State;
@@ -60,13 +60,13 @@ public:
         x.initialize();
 
         // Init filters with true system state
-        ukf = Kalman::UnscentedKalmanFilter<State>(1);
+        ukf = Kalman::UnscentedKalmanFilter<State>(0.1);
         ukf.init(x);
     }
 
     void loop() {
         sys.f(x, u);
-        x = ukf.predict(sys, u);
+        x = ukf.predict(sys);
     }
 
     void feedIMU(IMUData id) {
@@ -106,16 +106,16 @@ public:
         T accelerometerNoise = 0.25f;
         T gyroDriftNoise = 0.25f;
 
-        Eigen::Vector3f gyroDrift;
+        Eigen::Vector3d gyroDrift;
         gyroDrift.setZero();
 
         // Simulate for 100 steps
         const size_t N = 500;
+        const size_t stop = 400;
         for (size_t i = 1; i <= N; i++)
         {
             // Simulate system
             x = sys.f(x, u);
-            est = sys.f(est, u);
 
             {
                 // Add noise: Our robot move is affected by noise (due to actuator failures)
@@ -123,8 +123,8 @@ public:
                 x.py() += systemNoise * noise(generator) * x.timestep;
                 x.pz() += systemNoise * noise(generator) * x.timestep;
     
-                Eigen::Quaternion<float> quat = State::getQuat(x);
-                Eigen::Quaternion<float> randomQuat = Eigen::Quaternion<float>::UnitRandom().normalized();
+                Eigen::Quaternion<T> quat = State::getQuat(x);
+                Eigen::Quaternion<T> randomQuat = Eigen::Quaternion<T>::UnitRandom().normalized();
                 quat = quat.slerp(orientationNoise, randomQuat).normalized();
 
                 State::setQuat(x, quat);
@@ -133,11 +133,14 @@ public:
             {
                 // move simulated state around
 
-                float velocity = (1.f + std::sin(T(2) * T(3.14f) / T(N))) * 100.0f;
-                float steer = std::sin(T(2) * T(3.14f) / T(N)) * (1 - 2 * (i > N / 2));
+                T velocity = (1.f + std::sin(T(2) * T(3.14f) / T(stop))) * 100.0f;
+                if (i > stop) {
+                    velocity = 0;
+                }
+                T steer = std::sin(T(2) * T(3.14f) / T(N)) * (1 - 2 * (i > stop));
 
-                Eigen::Vector3f vel(x.vx(), x.vy(), x.vz());
-                Eigen::Vector3f newVel(0, velocity, 0);
+                Eigen::Vector3d vel(x.vx(), x.vy(), x.vz());
+                Eigen::Vector3d newVel(0, velocity, 0);
                 auto quat = State::getQuat(x);
                 newVel = quat * newVel;
 
@@ -145,15 +148,15 @@ public:
                 x.ay() = x.ay() + ((newVel.y() - x.vy()) - x.ay()) * 0.01f;
                 x.az() = x.az() + ((newVel.z() - x.vz()) - x.az()) * 0.01f;
 
-                auto angleAxis = Eigen::AngleAxis<float>(steer, Eigen::Vector3f::UnitZ());
-                auto rotatingQuat = Eigen::Quaternion<float>::Quaternion(angleAxis);
+                auto angleAxis = Eigen::AngleAxis<T>(steer, Eigen::Vector3d::UnitZ());
+                auto rotatingQuat = Eigen::Quaternion<T>::Quaternion(angleAxis);
                 auto rotatedQuat = (rotatingQuat * quat).normalized();
 
                 State::setQuat(x, rotatedQuat);
             }
 
             // Predict state for current time-step using the filters
-            est = ukf.predict(sys, u);
+            est = ukf.predict(sys);
 
             // Orientation measurement
             {
@@ -162,8 +165,8 @@ public:
 
                 // Measurement is affected by noise as well
                 //orientation.theta() += orientationNoise * noise(generator);
-                Eigen::Quaternion<float> quat = State::getQuat(x);
-                Eigen::Quaternion<float> randomQuat = Eigen::Quaternion<float>::UnitRandom().normalized();
+                Eigen::Quaternion<T> quat = State::getQuat(x);
+                Eigen::Quaternion<T> randomQuat = Eigen::Quaternion<T>::UnitRandom().normalized();
                 quat = quat.slerp(orientationNoise, randomQuat).normalized();
 
                 OrientationMeasurement::setQuat(orientation, quat);
@@ -205,10 +208,10 @@ public:
             if (i % 10 == 0 || i < 20) {
                 auto xQuat = State::getQuat(x);
                 // Print to stdout as csv format
-                printf("Round %d: p %6.2f, %6.2f, %6.2f - v %6.2f, %6.2f, %6.2f - a %6.2f, %6.2f, %6.2f - q %6.2f, %6.2f, %6.2f, %6.2f\n", i, x.px(), x.py(), x.pz(),
+                printf("Round %4lld: p %7.2f, %7.2f, %7.2f - v %6.2f, %6.2f, %6.2f - a %6.2f, %6.2f, %6.2f - q %6.2f, %6.2f, %6.2f, %6.2f\n", i, x.px(), x.py(), x.pz(),
                     x.vx(), x.vy(), x.vz(), x.ax(), x.ay(), x.az(), xQuat.w(), xQuat.x(), xQuat.y(), xQuat.z());
                 auto estQuat = State::getQuat(est);
-                printf("Estimate: p %6.2f, %6.2f, %6.2f - v %6.2f, %6.2f, %6.2f - a %6.2f, %6.2f, %6.2f - q %6.2f, %6.2f, %6.2f, %6.2f\n\n", est.px(), est.py(), est.pz(),
+                printf("Estimate  : p %7.2f, %7.2f, %7.2f - v %6.2f, %6.2f, %6.2f - a %6.2f, %6.2f, %6.2f - q %6.2f, %6.2f, %6.2f, %6.2f\n\n", est.px(), est.py(), est.pz(),
                     est.vx(), est.vy(), est.vz(), est.ax(), est.ay(), est.az(), estQuat.w(), estQuat.x(), estQuat.y(), estQuat.z());
             }
         }
