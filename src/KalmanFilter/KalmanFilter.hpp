@@ -113,10 +113,18 @@ public:
             x = sys.f(x, u);
             est = sys.f(est, u);
 
-            // Add noise: Our robot move is affected by noise (due to actuator failures)
-            x.px() += systemNoise * noise(generator) * x.timestep;
-            x.py() += systemNoise * noise(generator) * x.timestep;
-            x.pz() += systemNoise * noise(generator) * x.timestep;
+            {
+                // Add noise: Our robot move is affected by noise (due to actuator failures)
+                x.px() += systemNoise * noise(generator) * x.timestep;
+                x.py() += systemNoise * noise(generator) * x.timestep;
+                x.pz() += systemNoise * noise(generator) * x.timestep;
+    
+                Eigen::Quaternion<float> quat = State::getQuat(x);
+                Eigen::Quaternion<float> randomQuat = Eigen::Quaternion<float>::UnitRandom().normalized();
+                quat = quat.slerp(orientationNoise, randomQuat).normalized();
+
+                State::setQuat(x, quat);
+            }
 
             // Predict state for current time-step using the filters
             est = ukf.predict(sys, u);
@@ -151,12 +159,14 @@ public:
                 est = ukf.update(am, acceleration);
             }
 
-            if (i % 1 == 0) {
+            if (i % 10 == 0) {
+                auto xQuat = State::getQuat(x);
                 // Print to stdout as csv format
-                printf("Kalman test: p %6.2f, %6.2f, %6.2f - v %6.2f, %6.2f, %6.2f - a %6.2f, %6.2f, %6.2f\n", x.px(), x.py(), x.pz(),
-                    x.vx(), x.vy(), x.vz(), x.ax(), x.ay(), x.az());
-                printf("Estimate:    p %6.2f, %6.2f, %6.2f - v %6.2f, %6.2f, %6.2f - a %6.2f, %6.2f, %6.2f\n", est.px(), est.py(), est.pz(),
-                    est.vx(), est.vy(), est.vz(), est.ax(), est.ay(), est.az());
+                printf("Kalman test: p %6.2f, %6.2f, %6.2f - v %6.2f, %6.2f, %6.2f - a %6.2f, %6.2f, %6.2f - q %6.2f, %6.2f, %6.2f, %6.2f\n", x.px(), x.py(), x.pz(),
+                    x.vx(), x.vy(), x.vz(), x.ax(), x.ay(), x.az(), xQuat.w(), xQuat.x(), xQuat.y(), xQuat.z());
+                auto estQuat = State::getQuat(est);
+                printf("Estimate:    p %6.2f, %6.2f, %6.2f - v %6.2f, %6.2f, %6.2f - a %6.2f, %6.2f, %6.2f - q %6.2f, %6.2f, %6.2f, %6.2f\n\n", est.px(), est.py(), est.pz(),
+                    est.vx(), est.vy(), est.vz(), est.ax(), est.ay(), est.az(), estQuat.w(), estQuat.x(), estQuat.y(), estQuat.z());
             }
         }
     }
