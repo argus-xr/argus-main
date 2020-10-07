@@ -79,13 +79,15 @@ public:
     {
         M measurement;
 
-        /*Eigen::Quaternion<float> quat = S::getQuat(x).inverse();
-        auto grav = quat * Eigen::Vector3f(0.f, 0.f, -9.807f);*/
+        Eigen::Quaternion<float> invQuat = S::getQuat(x).inverse();
+        
+        Eigen::Vector3f accel(x.ax(), x.ay(), x.az() - 9.807f);
+        accel = invQuat * accel; // rotated to be in local space.
 
-        // Acceleartion is given by the actual robot acceleration
-        measurement.ax() = x.ax();// +grav.x();
-        measurement.ay() = x.ay();// +grav.y();
-        measurement.az() = x.az();// +grav.z();
+        // Acceleration is given by the actual robot acceleration, but in local space.
+        measurement.ax() = accel.x();
+        measurement.ay() = accel.y();
+        measurement.az() = accel.z();
         
         return measurement;
     }
