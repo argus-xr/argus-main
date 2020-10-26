@@ -30,6 +30,7 @@ bool ConnectionTCP::poll() {
 		if (valid && size > 0) {
 			buf->insertBuffer((uint8_t*) recvbuffer, size, true);
 			checkMessages();
+			printf("Received %llu bytes.\n", size);
 		}
 		else {
 			continue_receiving = false;
@@ -150,12 +151,12 @@ void ConnectionTCP::processIMUDataMessage(NetMessageIn* msg) {
 		data.gY = (float)msg->readVarIntSigned() * GMult;
 		data.gZ = (float)msg->readVarIntSigned() * GMult;
 		data.timestamp_us = msg->readVarInt(); // timestamp in microseconds.
-		if (controller) {
+		/*if (controller) {
 			controller->addIMUData(data);
 			controller->printTracking();
-		}
+		}*/
 		//else {
-			printf("IMU: %6.2f %6.2f %6.2f - %6.2f %6.2f %6.2f, timestamp %llu.\n", data.aX, data.aY, data.aZ, data.gX, data.gY, data.gZ, data.timestamp_us);
+			//printf("IMU: %6.2f %6.2f %6.2f - %6.2f %6.2f %6.2f, timestamp %llu.\n", data.aX, data.aY, data.aZ, data.gX, data.gY, data.gZ, data.timestamp_us);
 		//}
 	}
 }
