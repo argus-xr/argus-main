@@ -4,6 +4,8 @@ target_include_directories(argus-main PUBLIC kissnet)
 
 add_subdirectory(argus-utils/argus-netbuffer)
 target_link_libraries(argus-main argus-libnetbuffer)
-target_include_directories(argus-main PUBLIC argus-utils)
+
+add_subdirectory(argus-utils/argus-transmit)
+target_link_libraries(argus-main argus-transmit)
 
 target_include_directories(argus-main PUBLIC ./)
